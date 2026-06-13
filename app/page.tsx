@@ -9,6 +9,7 @@ import CallStack from '../components/CallStack';
 import QueueBox from '../components/QueueBox';
 import WebApiBox from '../components/WebApiBox';
 import TemplateSelector, { TEMPLATES } from '../components/TemplateSelector';
+import ChatBot from '../components/ChatBot';
 
 export default function Home() {
   const [code, setCode] = useState(TEMPLATES[0].code);
@@ -314,6 +315,7 @@ export default function Home() {
 
         </div>
       </div>
+      <ChatBot code={code} currentState={currentState} stepIndex={stepIndex} />
     </main>
   );
 }
