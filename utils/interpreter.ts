@@ -135,16 +135,23 @@ export class DynamicInterpreter {
 
         // Catch custom methods in EventLoopSimulation class: queueMacrotask, queueMicrotask
         if (node.type === 'CallExpression') {
-          const propName = node.callee?.property?.name || node.callee?.name || '';
           const firstArg = node.arguments[0];
           
           if (firstArg && (firstArg.type === 'ArrowFunctionExpression' || firstArg.type === 'FunctionExpression' || firstArg.type === 'Identifier')) {
-            if (propName === 'queueMacrotask') {
-              inserts.push({ pos: firstArg.start, text: `__wrapMacro(` });
-              inserts.push({ pos: firstArg.end, text: `, "cb_timeout")` });
-            } else if (propName === 'queueMicrotask') {
-              inserts.push({ pos: firstArg.start, text: `__wrapMicro(` });
-              inserts.push({ pos: firstArg.end, text: `, "cb_microtask")` });
+            if (node.callee?.type === 'MemberExpression') {
+              const objName = node.callee.object?.name || '';
+              const isGlobalObj = objName === 'window' || objName === 'globalThis' || objName === 'global';
+              
+              if (!isGlobalObj) {
+                const propName = node.callee.property?.name || '';
+                if (propName === 'queueMacrotask') {
+                  inserts.push({ pos: firstArg.start, text: `__wrapMacro(` });
+                  inserts.push({ pos: firstArg.end, text: `, "cb_timeout")` });
+                } else if (propName === 'queueMicrotask') {
+                  inserts.push({ pos: firstArg.start, text: `__wrapMicro(` });
+                  inserts.push({ pos: firstArg.end, text: `, "cb_microtask")` });
+                }
+              }
             }
           }
         }
@@ -154,12 +161,18 @@ export class DynamicInterpreter {
                            node.type === 'ArrowFunctionExpression';
 
         if (isFunction && node.body && node.loc) {
-          // Skip if parent is queueMacrotask/queueMicrotask since they are already wrapped
+          // Skip if parent is queueMacrotask/queueMicrotask on a custom object since they are already wrapped
           let isQueueArg = false;
           if (parent && parent.type === 'CallExpression') {
-            const propName = parent.callee?.property?.name || parent.callee?.name || '';
-            if (propName === 'queueMacrotask' || propName === 'queueMicrotask') {
-              isQueueArg = true;
+            if (parent.callee?.type === 'MemberExpression') {
+              const objName = parent.callee.object?.name || '';
+              const isGlobalObj = objName === 'window' || objName === 'globalThis' || objName === 'global';
+              if (!isGlobalObj) {
+                const propName = parent.callee.property?.name || '';
+                if (propName === 'queueMacrotask' || propName === 'queueMicrotask') {
+                  isQueueArg = true;
+                }
+              }
             }
           }
 
